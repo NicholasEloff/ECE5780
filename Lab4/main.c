@@ -65,11 +65,6 @@ int main(void)
   HAL_Init();
   SystemClock_Config();
 
-		//enable the timers
-	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-	
-	
 	//Section 4.1
 	//Set the pins into alternate function mode
 	GPIOC->AFR[0] |= (1<<16 | 1<<20);
@@ -81,27 +76,36 @@ int main(void)
 	USART3->BRR = HAL_RCC_GetHCLKFreq() / 115200;
 	
 	//enable transmit and recieve
+	USART3->CR1 |= (1<<0 | 1<<1 | 1<<2 | 1<<3); //might need to delete bit 1
 	
+	//
 	
-	
-	//enable the green leds
-	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 
-	GPIOC->MODER |= (1<<16 | 1<<18);
-	GPIOC->OTYPER &= ~(1<<8 | 1<<9);
-	GPIOC->OSPEEDR &= ~(1<<16 |1 <<18);
-	GPIOC->PUPDR &= ~(1<<16 | 1<<17 | 1<<18 | 1<<19);
-	GPIOC->ODR |= (1<<9);
 	
 
 	
   while (1)
   {
+		//Call the transmitChar function
+		transmitChar('L');
+		HAL_Delay(400);
 		
   }
   /* USER CODE END 3 */
 }
 
+//create the looping function
+void arrayLoop(char* string){
+	uint32_t i = 0;
+	while(string[i] != '\0'){
+		transmitChar(string[i]);
+	}
+	
+}
+void transmitChar(char letter){
+	while((USART3->ISR) & (1<<7)){;}
+	USART3->TDR = letter;
+}
 	void TIM2_IRQHandler(void){
 		GPIOC->ODR ^= (1<<8 | 1<<9);
 		TIM2->SR &= ~(1<<0);
