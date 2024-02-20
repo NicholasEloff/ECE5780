@@ -68,11 +68,10 @@ int main(void)
 	//enable leds
 	
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
-	GPIOC->MODER |= (1<<14 | 1<<15 | 1<<16 | 1<<18);
+	GPIOC->MODER |= (1<<12 | 1<<14 | 1<<16 | 1<<18);
 	GPIOC->OTYPER &= ~(1<<6 | 1<<7 | 1<<8 | 1<<9);
-	GPIOC->OSPEEDR &= ~(1<<14 | 1<<15 | 1<<16 | 1<<18);
-	GPIOC->PUPDR &= ~(1<<12 | 1<<13 | 1<<14 | 1<<15 |1<<16 | 1<<17 | 1<<18 | 1<<19);
-	GPIOC->ODR |= (1<<6 | 1<<7 | 1<<8 | 1<<9);
+	GPIOC->OSPEEDR &= ~(1<<12 | 1<<14 | 1<<16 |1 <<18);
+	GPIOC->PUPDR &= ~(1<<12 | 1<<14 | 1<<13 | 1<<15 | 1<<16 | 1<<17 | 1<<18 | 1<<19);	
 	
 	//Section 4.1
 	//Set the pins into alternate function mode
@@ -91,27 +90,30 @@ int main(void)
   while (1)
   {
 		//Call the transmitChar function
-		transmitChar('L');
+		//transmitChar('L');
 		//arrayLoop("Iamdying\n");
 		HAL_Delay(1000);
 		
-		while((USART3->ISR) & 1<<5){;}
+		while(!((USART3->ISR) & 1<<5)){;}
 			char c = USART3->RDR;
 			switch(c){
 				case 'r':
-					
+					GPIOC->ODR ^= (1<<6);
+					transmitChar('r');
 				break;
 				case 'g':
 					GPIOC->ODR ^= (1<<9);
 					transmitChar('g');
 				break;
 				case 'b':
-					
+					GPIOC->ODR ^= (1<<7);
+					transmitChar('b');
 				break;
 				case 'o':
-					
+					GPIOC->ODR ^= (1<<8);
+					transmitChar('o');
 				break;
-				default: arrayLoop("Error\n");				
+				default: arrayLoop("Error");				
 				}
 				
   }
