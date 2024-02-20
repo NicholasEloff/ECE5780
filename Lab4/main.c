@@ -64,32 +64,56 @@ int main(void)
 {
   HAL_Init();
   SystemClock_Config();
-
+	
+	//enable leds
+	
+	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+	GPIOC->MODER |= (1<<14 | 1<<15 | 1<<16 | 1<<18);
+	GPIOC->OTYPER &= ~(1<<6 | 1<<7 | 1<<8 | 1<<9);
+	GPIOC->OSPEEDR &= ~(1<<14 | 1<<15 | 1<<16 | 1<<18);
+	GPIOC->PUPDR &= ~(1<<12 | 1<<13 | 1<<14 | 1<<15 |1<<16 | 1<<17 | 1<<18 | 1<<19);
+	GPIOC->ODR |= (1<<6 | 1<<7 | 1<<8 | 1<<9);
+	
 	//Section 4.1
 	//Set the pins into alternate function mode
 	GPIOC->AFR[0] |= (1<<16 | 1<<20);
+	GPIOC->MODER |= (1<<9 | 1<<11);
 	
-	//enable the usart rcc peripheral
+//	//enable the usart rcc peripheral
 	RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
-	
-	//set the baud rate
-	USART3->BRR = HAL_RCC_GetHCLKFreq() / 115200;
-	
-	//enable transmit and recieve
-	USART3->CR1 |= (1<<0 | 1<<1 | 1<<2 | 1<<3); //might need to delete bit 1
-	
-	//
-	
-
-	
-
+//	
+//	//set the baud rate
+	USART3->BRR = (HAL_RCC_GetHCLKFreq() / 115200) + 1;
+//	
+//	//enable transmit and recieve
+	USART3->CR1 |= (1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<5);
 	
   while (1)
   {
 		//Call the transmitChar function
 		transmitChar('L');
-		HAL_Delay(400);
+		//arrayLoop("Iamdying\n");
+		HAL_Delay(1000);
 		
+		while((USART3->ISR) & 1<<5){;}
+			char c = USART3->RDR;
+			switch(c){
+				case 'r':
+					
+				break;
+				case 'g':
+					GPIOC->ODR ^= (1<<9);
+					transmitChar('g');
+				break;
+				case 'b':
+					
+				break;
+				case 'o':
+					
+				break;
+				default: arrayLoop("Error\n");				
+				}
+				
   }
   /* USER CODE END 3 */
 }
@@ -99,17 +123,15 @@ void arrayLoop(char* string){
 	uint32_t i = 0;
 	while(string[i] != '\0'){
 		transmitChar(string[i]);
+		i++;
 	}
 	
 }
 void transmitChar(char letter){
-	while((USART3->ISR) & (1<<7)){;}
+	while(!((USART3->ISR) & (1<<7))){;}
 	USART3->TDR = letter;
 }
-	void TIM2_IRQHandler(void){
-		GPIOC->ODR ^= (1<<8 | 1<<9);
-		TIM2->SR &= ~(1<<0);
-	}
+
 /**
   * @brief System Clock Configuration
   * @retval None
