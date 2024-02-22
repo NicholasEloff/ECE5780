@@ -83,18 +83,12 @@ int main(void)
 	//enable the usart rcc peripheral
 	RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
 	
-	//set the interrupt
-	USART3->ISR |= (1<<5);
-	
 	//set the baud rate
 	USART3->BRR = (HAL_RCC_GetHCLKFreq() / 115200) + 1;
 	
 	//enable transmit and recieve
 	USART3->CR1 |= (1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<5);
-	
-	//set the interrupt
-	NVIC_SetPriority(USART3_4_IRQn,0);
-	
+		
 	//enable the interrupt
 	NVIC_EnableIRQ(USART3_4_IRQn);
 	
@@ -116,9 +110,10 @@ int main(void)
 }
 
 //Set up the handler
-void USART3_IRQHandler(){
+void USART3_4_IRQHandler(void){
 	if(USART3->ISR & USART_ISR_RXNE){
 		newData = USART3->RDR;
+		//HAL_Delay(1000);
 		nextData = USART3->TDR;
 		dataAquired = 1;
 	}
@@ -126,7 +121,7 @@ void USART3_IRQHandler(){
 
 //toggling the LED's function
 void twoInputToggle(uint32_t data, uint32_t nextData){
-	while(!((USART3->ISR) & 1<<5)){;}
+	while((USART3->ISR) & 1<<5){;}
 	char c = data;
 	char n = nextData;
 	switch(c){
