@@ -55,7 +55,9 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
-
+	uint32_t newData;
+	uint32_t dataAquired;
+	uint32_t nextData;
 /**
   * @brief  The application entry point.
   * @retval int
@@ -78,14 +80,23 @@ int main(void)
 	GPIOC->AFR[0] |= (1<<16 | 1<<20);
 	GPIOC->MODER |= (1<<9 | 1<<11);
 	
-//	//enable the usart rcc peripheral
+	//enable the usart rcc peripheral
 	RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
-//	
-//	//set the baud rate
+	
+	//set the interrupt
+	USART3->ISR |= (1<<5);
+	
+	//set the baud rate
 	USART3->BRR = (HAL_RCC_GetHCLKFreq() / 115200) + 1;
-//	
-//	//enable transmit and recieve
+	
+	//enable transmit and recieve
 	USART3->CR1 |= (1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<5);
+	
+	//set the interrupt
+	NVIC_SetPriority(USART3_4_IRQn,0);
+	
+	//enable the interrupt
+	NVIC_EnableIRQ(USART3_4_IRQn);
 	
   while (1)
   {
@@ -93,35 +104,127 @@ int main(void)
 		//transmitChar('L');
 		//arrayLoop("Iamdying\n");
 		HAL_Delay(1000);
+		//toggleLEDs();
 		
-		while(!((USART3->ISR) & 1<<5)){;}
-			char c = USART3->RDR;
-			switch(c){
-				case 'r':
-					GPIOC->ODR ^= (1<<6);
-					transmitChar('r');
-				break;
-				case 'g':
-					GPIOC->ODR ^= (1<<9);
-					transmitChar('g');
-				break;
-				case 'b':
-					GPIOC->ODR ^= (1<<7);
-					transmitChar('b');
-				break;
-				case 'o':
-					GPIOC->ODR ^= (1<<8);
-					transmitChar('o');
-				break;
-				default: arrayLoop("Error");				
-				}
+		if(dataAquired){
+			twoInputToggle(newData, nextData);
+			dataAquired = 0;		
+		}
 				
   }
   /* USER CODE END 3 */
 }
 
+//Set up the handler
+void USART3_IRQHandler(){
+	if(USART3->ISR & USART_ISR_RXNE){
+		newData = USART3->RDR;
+		nextData = USART3->TDR;
+		dataAquired = 1;
+	}
+}
+
+//toggling the LED's function
+void twoInputToggle(uint32_t data, uint32_t nextData){
+	while(!((USART3->ISR) & 1<<5)){;}
+	char c = data;
+	char n = nextData;
+	switch(c){
+		case 'r':
+			if(nextData == 0){
+				GPIOC->ODR ^= (1<<6);
+			}
+			else if(nextData == 1){
+				GPIOC->ODR ^= (1<<6);
+			}
+			else if(nextData == 2){
+				while(1){
+					GPIOC->ODR ^= (1<<6);
+				}
+			}
+			else
+				transmitArray("Error");
+			
+			transmitChar('r');
+		break;
+		case 'g':
+						if(nextData == 0){
+				GPIOC->ODR ^= (1<<9);
+			}
+			else if(nextData == 1){
+				GPIOC->ODR ^= (1<<9);
+			}
+			else if(nextData == 2){
+				while(1){
+					GPIOC->ODR ^= (1<<9);
+				}
+			}
+			else
+				transmitArray("Error");
+			transmitChar('g');
+		break;
+		case 'b':
+						if(nextData == 0){
+				GPIOC->ODR ^= (1<<7);
+			}
+			else if(nextData == 1){
+				GPIOC->ODR ^= (1<<7);
+			}
+			else if(nextData == 2){
+				while(1){
+					GPIOC->ODR ^= (1<<7);
+				}
+			}
+			else
+				transmitArray("Error");
+			transmitChar('b');
+		break;
+		case 'o':
+						if(nextData == 0){
+				GPIOC->ODR ^= (1<<8);
+			}
+			else if(nextData == 1){
+				GPIOC->ODR ^= (1<<8);
+			}
+			else if(nextData == 2){
+				while(1){
+					GPIOC->ODR ^= (1<<8);
+				}
+			}
+			else
+				transmitArray("Error");
+			transmitChar('o');
+		break;
+		default: transmitArray("Error");				
+		}
+}
+
+//toggling the LED's function
+void toggleLEDs(void){
+	while(!((USART3->ISR) & 1<<5)){;}
+	char c = USART3->RDR;
+	switch(c){
+		case 'r':
+			GPIOC->ODR ^= (1<<6);
+			transmitChar('r');
+		break;
+		case 'g':
+			GPIOC->ODR ^= (1<<9);
+			transmitChar('g');
+		break;
+		case 'b':
+			GPIOC->ODR ^= (1<<7);
+			transmitChar('b');
+		break;
+		case 'o':
+			GPIOC->ODR ^= (1<<8);
+			transmitChar('o');
+		break;
+		default: transmitArray("Error");				
+		}
+}
 //create the looping function
-void arrayLoop(char* string){
+void transmitArray(char* string){
 	uint32_t i = 0;
 	while(string[i] != '\0'){
 		transmitChar(string[i]);
