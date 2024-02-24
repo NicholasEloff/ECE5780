@@ -104,7 +104,9 @@ int main(void)
 		if(validateCommand(newData))
 		{
 			executeCommand(newData);
-		}		
+		}
+		else
+			continue;
   }
   /* USER CODE END 3 */
 }
@@ -122,6 +124,7 @@ int validateCommand(char cmd){
 		return 1;
 	}
 	else
+		transmitArray("ERROR ");
 		return 0;
 }
 //Execute Command
@@ -147,27 +150,36 @@ void executeCommand(char cmd){
 		break;
 			
 		default:
-			transmitArray("Error ");	
+			transmitArray("Error in execution");	
 	}
 }
 
 //flash the LED
 void flashLED(char color){
-	while(1){
 		if(color == 'g'){
-			GPIOC->ODR ^= (1<<9);
+			while(color == 'g'){
+				GPIOC->ODR ^= (1<<9);
+				HAL_Delay(200);
+			}
 		}
 		else if(color == 'r'){
-			GPIOC->ODR ^= (1<<6);
+			while(1){
+				GPIOC->ODR ^= (1<<6);
+				HAL_Delay(200);
+			}
 		}
 		else if(color == 'o'){
-			GPIOC->ODR ^= (1<<8);
+			while(1){
+				GPIOC->ODR ^= (1<<8);
+				HAL_Delay(200);
+			}
 		}
 		else if(color == 'b'){
-			GPIOC->ODR ^= (1<<7);
+			while(1){
+				GPIOC->ODR ^= (1<<7);
+				HAL_Delay(200);
+			}
 		}
-	}
-	
 }
 
 //Process cmd & action
