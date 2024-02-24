@@ -90,110 +90,103 @@ int main(void)
 	USART3->CR1 |= (1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<5);
 		
 	//enable the interrupt
+	USART3->ISR |= 1<<5;
+	NVIC_SetPriority(USART3_4_IRQn,0);
 	NVIC_EnableIRQ(USART3_4_IRQn);
 	
   while (1)
   {
-		//Call the transmitChar function
-		//transmitChar('L');
-		//arrayLoop("Iamdying\n");
-		HAL_Delay(1000);
 		//toggleLEDs();
-		
-		if(dataAquired){
-			twoInputToggle(newData, nextData);
-			dataAquired = 0;		
-		}
-				
+		transmitArray("CMD ");
+		while(!((USART3->ISR) & 1<<5)){;}
+		dataAquired=0;
+			
+		if(validateCommand(newData))
+		{
+			executeCommand(newData);
+		}		
   }
   /* USER CODE END 3 */
 }
 
 //Set up the handler
-void USART3_4_IRQHandler(void){
-	if(USART3->ISR & USART_ISR_RXNE){
-		newData = USART3->RDR;
-		//HAL_Delay(1000);
-		nextData = USART3->TDR;
-		dataAquired = 1;
+void USART3_4_IRQHandler(){
+	newData = USART3->RDR;
+	dataAquired = 1;
+}
+
+//Validate command
+int validateCommand(char cmd){
+	if(newData == 'g' | newData == 'b' | newData == 'o' | newData == 'r' ){
+		transmitChar(newData);
+		return 1;
+	}
+	else
+		return 0;
+}
+//Execute Command
+void executeCommand(char cmd){
+	char color = cmd;
+	while(!((USART3->ISR) & 1<<5)){;}
+	char action = newData;
+		
+	switch(action){
+		case '0':
+			transmitArray("0 ");
+			twoInputToggle(color);
+		break;
+		
+		case '1':
+			transmitArray("1 ");
+			twoInputToggle(color);
+		break;
+		
+		case '2':
+			transmitArray("2 ");
+			flashLED(color);
+		break;
+			
+		default:
+			transmitArray("Error ");	
 	}
 }
 
-//toggling the LED's function
-void twoInputToggle(uint32_t data, uint32_t nextData){
-	while((USART3->ISR) & 1<<5){;}
-	char c = data;
-	char n = nextData;
-	switch(c){
-		case 'r':
-			if(nextData == 0){
-				GPIOC->ODR ^= (1<<6);
-			}
-			else if(nextData == 1){
-				GPIOC->ODR ^= (1<<6);
-			}
-			else if(nextData == 2){
-				while(1){
-					GPIOC->ODR ^= (1<<6);
-				}
-			}
-			else
-				transmitArray("Error");
-			
-			transmitChar('r');
-		break;
-		case 'g':
-						if(nextData == 0){
-				GPIOC->ODR ^= (1<<9);
-			}
-			else if(nextData == 1){
-				GPIOC->ODR ^= (1<<9);
-			}
-			else if(nextData == 2){
-				while(1){
-					GPIOC->ODR ^= (1<<9);
-				}
-			}
-			else
-				transmitArray("Error");
-			transmitChar('g');
-		break;
-		case 'b':
-						if(nextData == 0){
-				GPIOC->ODR ^= (1<<7);
-			}
-			else if(nextData == 1){
-				GPIOC->ODR ^= (1<<7);
-			}
-			else if(nextData == 2){
-				while(1){
-					GPIOC->ODR ^= (1<<7);
-				}
-			}
-			else
-				transmitArray("Error");
-			transmitChar('b');
-		break;
-		case 'o':
-						if(nextData == 0){
-				GPIOC->ODR ^= (1<<8);
-			}
-			else if(nextData == 1){
-				GPIOC->ODR ^= (1<<8);
-			}
-			else if(nextData == 2){
-				while(1){
-					GPIOC->ODR ^= (1<<8);
-				}
-			}
-			else
-				transmitArray("Error");
-			transmitChar('o');
-		break;
-		default: transmitArray("Error");				
+//flash the LED
+void flashLED(char color){
+	while(1){
+		if(color == 'g'){
+			GPIOC->ODR ^= (1<<9);
 		}
+		else if(color == 'r'){
+			GPIOC->ODR ^= (1<<6);
+		}
+		else if(color == 'o'){
+			GPIOC->ODR ^= (1<<8);
+		}
+		else if(color == 'b'){
+			GPIOC->ODR ^= (1<<7);
+		}
+	}
+	
 }
 
+//Process cmd & action
+void twoInputToggle(char color){
+		if(color == 'g'){
+			GPIOC->ODR ^= (1<<9);
+		}
+		else if(color == 'r'){
+			GPIOC->ODR ^= (1<<6);
+		}
+		else if(color == 'o'){
+			GPIOC->ODR ^= (1<<8);
+		}
+		else if(color == 'b'){
+			GPIOC->ODR ^= (1<<7);
+		}
+		else
+			transmitArray("Error");
+}
 //toggling the LED's function
 void toggleLEDs(void){
 	while(!((USART3->ISR) & 1<<5)){;}
