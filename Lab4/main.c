@@ -56,7 +56,7 @@ void SystemClock_Config(void);
 
 /* USER CODE END 0 */
 	uint32_t newData;
-	uint32_t dataAquired;
+	uint32_t dataAquired = 0;
 	uint32_t nextData;
 /**
   * @brief  The application entry point.
@@ -98,6 +98,7 @@ int main(void)
   {
 		//toggleLEDs();
 		transmitArray("CMD ");
+		//while(!dataAquired){;}
 		while(!((USART3->ISR) & 1<<5)){;}
 		dataAquired=0;
 			
@@ -146,7 +147,9 @@ void executeCommand(char cmd){
 		
 		case '2':
 			transmitArray("2 ");
-			flashLED(color);
+			twoInputToggle(color);
+			HAL_Delay(400);
+			twoInputToggle(color);
 		break;
 			
 		default:
@@ -154,33 +157,6 @@ void executeCommand(char cmd){
 	}
 }
 
-//flash the LED
-void flashLED(char color){
-		if(color == 'g'){
-			while(color == 'g'){
-				GPIOC->ODR ^= (1<<9);
-				HAL_Delay(200);
-			}
-		}
-		else if(color == 'r'){
-			while(1){
-				GPIOC->ODR ^= (1<<6);
-				HAL_Delay(200);
-			}
-		}
-		else if(color == 'o'){
-			while(1){
-				GPIOC->ODR ^= (1<<8);
-				HAL_Delay(200);
-			}
-		}
-		else if(color == 'b'){
-			while(1){
-				GPIOC->ODR ^= (1<<7);
-				HAL_Delay(200);
-			}
-		}
-}
 
 //Process cmd & action
 void twoInputToggle(char color){
