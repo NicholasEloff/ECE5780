@@ -73,7 +73,7 @@ int main(void)
 	GPIOC->MODER |= (1<<12 | 1<<14 | 1<<16 | 1<<18);
 	GPIOC->OTYPER &= ~(1<<6 | 1<<7 | 1<<8 | 1<<9);
 	GPIOC->OSPEEDR &= ~(1<<12 | 1<<14 | 1<<16 |1 <<18);
-	GPIOC->PUPDR &= ~(1<<12 | 1<<14 | 1<<13 | 1<<15 | 1<<16 | 1<<17 | 1<<18 | 1<<19);	
+	GPIOC->PUPDR &= ~(1<<12 | 1<<13 | 1<<14 | 1<<15 | 1<<16 | 1<<17 | 1<<18 | 1<<19);	
 	
 	//5.2.2 set PB11
 	GPIOB->MODER |= (1<<23 || 0<<22);
@@ -103,19 +103,36 @@ int main(void)
 	| (0x2<<16)   //SDADEL
 	| (0xF<<8)    //SCLH
 	| (0x13<<0)   //SCLL
-	| (I2C2->TIMINGR & (0xF <<24));
+	| (I2C2->TIMINGR & (0xF<<24));
 
 	//5.3.2 enable the I2C Peripheral
 	I2C2->CR1 |= (1<<0);
 	
 	//5.4.1
+	I2C2->CR2 |= (1<<16);
+	
+	//set wrn bit
+	I2C2->CR2 |= (0<<10);
+	
+	//set start bit
+	I2C2->CR2 |= (1<<13);
+	
+	/* Clear the NBYTES and SADD bit fields
+	* The NBYTES field begins at bit 16, the SADD at bit 0
+	*/
+	I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0));
+	/* Set NBYTES = 42 and SADD = 0x14
+	* Can use hex or decimal values directly as bitmasks.
+	* Remember that for 7-bit addresses, the lowest SADD bit
+	* is not used and the mask must be shifted by one.
+	*/
+	I2C2->CR2 |= (42 << 16) | (0x14 << 1);
+	
 	
 
   while (1)
   {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
+		
   }
   /* USER CODE END 3 */
 }
