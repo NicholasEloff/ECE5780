@@ -65,13 +65,51 @@ int main(void)
   HAL_Init();
   SystemClock_Config();
 	
-	//Enable GPIOB & GPIOC
+	//5.1.1 Enable GPIOB & GPIOC
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 	
+	//Enable the LED's
+	GPIOC->MODER |= (1<<12 | 1<<14 | 1<<16 | 1<<18);
+	GPIOC->OTYPER &= ~(1<<6 | 1<<7 | 1<<8 | 1<<9);
+	GPIOC->OSPEEDR &= ~(1<<12 | 1<<14 | 1<<16 |1 <<18);
+	GPIOC->PUPDR &= ~(1<<12 | 1<<14 | 1<<13 | 1<<15 | 1<<16 | 1<<17 | 1<<18 | 1<<19);	
 	
-	
+	//5.2.2 set PB11
+	GPIOB->MODER |= (1<<23 || 0<<22);
+	GPIOB->OTYPER |= (1<<11);
+	GPIOB->AFR[1] |= (1<<12);
+		
+	//5.2.3 set PB13
+	GPIOB->MODER |= (1<<27);
+	GPIOB->OTYPER |= (1<<13);
+	GPIOB->AFR[1] |= (1<<20 | 1<<22);
 
+	//5.2.4 set PB14
+	GPIOB->MODER |= (1<<28);
+	GPIOB->ODR |= (1<<14);
+	
+	//5.2.5 set PC0
+	GPIOC->MODER |= (1<<0);
+	GPIOC->ODR |= (1<<0);
+	
+	//5.3.1 set the I2C
+	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
+	
+	//5.3.2 set up the TIMINGR
+	I2C2->TIMINGR = 
+		(1<<28)     //PreScaler
+	| (0x4 << 20) //SCLDEL
+	| (0x2<<16)   //SDADEL
+	| (0xF<<8)    //SCLH
+	| (0x13<<0)   //SCLL
+	| (I2C2->TIMINGR & (0xF <<24));
+
+	//5.3.2 enable the I2C Peripheral
+	I2C2->CR1 |= (1<<0);
+	
+	//5.4.1
+	
 
   while (1)
   {
@@ -152,4 +190,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
