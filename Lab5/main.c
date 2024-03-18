@@ -1,3 +1,4 @@
+
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -47,14 +48,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
+volatile char* read;
 
 /**
   * @brief  The application entry point.
@@ -68,33 +62,37 @@ int main(void)
 	//5.1.1 Enable GPIOB & GPIOC
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
 	
 	//Enable the LED's
-	GPIOC->MODER |= (1<<12 | 1<<14 | 1<<16 | 1<<18);
+	GPIOC->MODER |= (1<<12 | 1<<14 | 1<<16 | 1<<18 | 1<<0);
 	GPIOC->OTYPER &= ~(1<<6 | 1<<7 | 1<<8 | 1<<9);
 	GPIOC->OSPEEDR &= ~(1<<12 | 1<<14 | 1<<16 |1 <<18);
 	GPIOC->PUPDR &= ~(1<<12 | 1<<13 | 1<<14 | 1<<15 | 1<<16 | 1<<17 | 1<<18 | 1<<19);	
+	GPIOC->BSRR = (1 << 0);
 	
 	//5.2.2 set PB11
-	GPIOB->MODER |= (1<<23 || 0<<22);
+	GPIOB->MODER |= (1<<23);
 	GPIOB->OTYPER |= (1<<11);
-	GPIOB->AFR[1] |= (1<<12);
+	GPIOB->PUPDR  |= (1 << 22);
+	GPIOB->AFR[1] |= 0x00501000;
 		
 	//5.2.3 set PB13
 	GPIOB->MODER |= (1<<27);
 	GPIOB->OTYPER |= (1<<13);
+	GPIOB->PUPDR  |= (1 << 26);
 	GPIOB->AFR[1] |= (1<<20 | 1<<22);
 
 	//5.2.4 set PB14
 	GPIOB->MODER |= (1<<28);
-	GPIOB->ODR |= (1<<14);
+	GPIOB->BSRR = (1 << 14);
 	
 	//5.2.5 set PC0
 	GPIOC->MODER |= (1<<0);
-	GPIOC->ODR |= (1<<0);
+	GPIOC->BSRR |= (1<<0);
 	
 	//5.3.1 set the I2C
-	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
+	//RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
 	
 	//5.3.2 set up the TIMINGR
 	I2C2->TIMINGR = 
@@ -102,34 +100,76 @@ int main(void)
 	| (0x4 << 20) //SCLDEL
 	| (0x2<<16)   //SDADEL
 	| (0xF<<8)    //SCLH
-	| (0x13<<0)   //SCLL
-	| (I2C2->TIMINGR & (0xF<<24));
+	| (0x13<<0);   //SCLL
 
 	//5.3.2 enable the I2C Peripheral
 	I2C2->CR1 |= (1<<0);
+	GPIOC->BSRR = (1<<0);
 	
-	//5.4.1
-	I2C2->CR2 |= (1<<16);
+	// Write register address
+	I2C2->CR2 = (0x6B << 1) | (1 << 16) | I2C_CR2_START;    // Set SADD, NBYTES & START, clear all other bits (including RD_WRN -> write mode) 
+	while(!(I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF)));   // Wait until either TXIS or NACKF flags are set
+	if(I2C2->ISR & I2C_ISR_NACKF) {      
+			GPIOC->ODR ^= (1<<9);
+	} 
+	I2C2->TXDR = 0x0F;  // WHO_AM_I register address
+	while(!(I2C2->ISR & (I2C_ISR_TC | I2C_ISR_NACKF)));   // Wait until either TC or NACKF flags are set
+	if(I2C2->ISR & I2C_ISR_NACKF) {      
+			GPIOC->ODR ^= (1<<9);
+	} 
 	
-	//set wrn bit
-	I2C2->CR2 |= (0<<10);
+	// Read register contents
+I2C2->CR2 &= ~((0x3FF << 0) | (0x7F << 16));
+	I2C2->CR2 |= (2<<16) //numbytes == 1
+		| (0x69<<1); //slave address = 0x69
+	I2C2->CR2 &= ~(1<<10); //write transfer (bit 10 is 0)
+	I2C2->CR2 |= (1<<13);//start bit
 	
-	//set start bit
-	I2C2->CR2 |= (1<<13);
-	
-	/* Clear the NBYTES and SADD bit fields
-	* The NBYTES field begins at bit 16, the SADD at bit 0
-	*/
-	I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0));
-	/* Set NBYTES = 42 and SADD = 0x14
-	* Can use hex or decimal values directly as bitmasks.
-	* Remember that for 7-bit addresses, the lowest SADD bit
-	* is not used and the mask must be shifted by one.
-	*/
-	I2C2->CR2 |= (42 << 16) | (0x14 << 1);
-	
-	
+	while(1){ //wait for TXIS
 
+		if ((I2C2->ISR & (1<<1))){ break;}
+		else if (I2C2->ISR & I2C_ISR_NACKF) {
+			//error
+			return 1;
+		}
+	}
+	
+	I2C2->TXDR = 0x20; //addr
+
+	while(1){ //wait for TXIS
+
+		if ((I2C2->ISR & (1<<1))){ break;}
+		else if (I2C2->ISR & I2C_ISR_NACKF) {
+			//error
+			return 1;
+		}
+	}
+	I2C2->TXDR = 0x0B;
+	while (1){
+		if (I2C2->ISR & I2C_ISR_TC) {break;} //wait until TC flag is set
+	}
+	
+	I2C2->CR2 &= ~((0x3FF << 0) | (0x7F << 16));
+	I2C2->CR2 |= (1<<16) //numbytes == 1
+		| (0x69<<1); //slave address = 0x6B
+	I2C2->CR2 |= (1<<10); //READ transfer (bit 10 is 1)
+	I2C2->CR2 |= (1<<13);//start bit set
+	while (1){
+
+		if (I2C2->ISR & I2C_ISR_RXNE){break;}
+		else if (I2C2->ISR & I2C_ISR_NACKF) {
+			//error
+			return 1;
+		}
+	}
+	
+	while (1){ 
+		if (I2C2->ISR & I2C_ISR_TC){break;}
+	}
+	
+	*(read) = I2C2->RXDR;
+	I2C2->CR2 |= (1<<14);//STOP
+	
   while (1)
   {
 		
