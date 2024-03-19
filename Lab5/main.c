@@ -70,17 +70,20 @@ int doublei2c(char reg, volatile int16_t* read){ //collects two nums
 	I2C2->CR2 |= (1<<13);//start bit
 		
 	while(1){ //wait for TXIS
+		GPIOC->ODR ^= (1<<7);//blue
 		if ((I2C2->ISR & (1<<1))){ break;}
 			else if (I2C2->ISR & I2C_ISR_NACKF) {
 				//error
 				return 1;
 			}
+		GPIOC->ODR ^= (1<<7);//blue
 	}
 
 	I2C2->TXDR = reg; //addr
 	while (1){
-
-	if (I2C2->ISR & I2C_ISR_TC) {break;} //wait until TC flag is set
+		GPIOC->ODR ^= (1<<8);
+		if (I2C2->ISR & I2C_ISR_TC) {break;} //wait until TC flag is set
+		GPIOC->ODR ^= (1<<8);
 	}
 
 	//READ NOW.
@@ -94,7 +97,9 @@ int doublei2c(char reg, volatile int16_t* read){ //collects two nums
 	int16_t result;
 	
 	for(uint32_t i = 0; i < 2; i++){
+		GPIOC->ODR ^= (1<<9);
 		while (1){
+					GPIOC->ODR ^= (1<<6);
 			if (I2C2->ISR & I2C_ISR_RXNE){break;}
 			else if (I2C2->ISR & I2C_ISR_NACKF) {
 				//error
@@ -110,11 +115,20 @@ int doublei2c(char reg, volatile int16_t* read){ //collects two nums
 	}
 
 	while (1){
+		GPIOC->ODR ^= (1<<9);
 		if (I2C2->ISR & I2C_ISR_TC) {break;} //wait until TC flag is set
 	}
 	I2C2->CR2 |= (1<<14);//STOP
+	GPIOC->ODR ^= (1<<6);
+	
+	GPIOC->ODR ^= (1<<6);
+	GPIOC->ODR ^= (1<<7);
+	GPIOC->ODR ^= (1<<8);
+	GPIOC->ODR ^= (1<<9);
+	
 	result = (h << 8) | (l);
 	*(read) = result;
+	
 	return 0;
 }
 
