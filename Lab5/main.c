@@ -179,8 +179,8 @@ int i2ctransfer(char reg, char info , volatile char* read){ //slave address = 0x
 		GPIOC->ODR |= (1<<6);
 		if (I2C2->ISR & I2C_ISR_RXNE){break;}
 		else if (I2C2->ISR & I2C_ISR_NACKF) {
-		//error
-		return 1;
+			//error
+			return 1;
 		}
 		HAL_Delay(200);
 		GPIOC->ODR |= (1<<6);
