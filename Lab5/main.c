@@ -86,7 +86,7 @@ int doublei2c(char reg, volatile int16_t* read){ //collects two nums
 	//READ NOW.
 	I2C2->CR2 &= ~((0x3FF << 0) | (0x7F << 16));
 	I2C2->CR2 |= (2<<16) //numbytes == 1
-	| (0x69<<1); //slave address = 0x6B
+	| (0x69<<1); //slave address = 0x69
 	I2C2->CR2 |= (1<<10); //READ transfer (bit 10 is 1)
 	I2C2->CR2 |= (1<<13);//start bit set
 
@@ -125,48 +125,66 @@ int i2ctransfer(char reg, char info , volatile char* read){ //slave address = 0x
 	I2C2->CR2 &= ~(1<<10); //write transfer (bit 10 is 0)
 	I2C2->CR2 |= (1<<13);//start bit
 	while(1){ //wait for TXIS
+		GPIOC->ODR ^= (1<<7);//blue 
 		if ((I2C2->ISR & (1<<1))){ break;}
 		else if (I2C2->ISR & I2C_ISR_NACKF) {
 			//error
 			return 1;
 		}
+		HAL_Delay(200);
+		GPIOC->ODR ^= (1<<7);//blue
 	}
 
 	I2C2->TXDR = reg; //addr
 
 	while(1){ //wait for TXIS
+		GPIOC->ODR |= (1<<8);
 		if ((I2C2->ISR & (1<<1))){ break;}
-			else if (I2C2->ISR & I2C_ISR_NACKF) {
+		else if (I2C2->ISR & I2C_ISR_NACKF) {
 			//error
 			return 1;
-			}
+		}
+		HAL_Delay(200);
+		GPIOC->ODR |= (1<<8);
 	}
 	I2C2->TXDR = info;
 	while (1){
+		GPIOC->ODR |= (1<<9);
 		if (I2C2->ISR & I2C_ISR_TC) {break;} //wait until TC flag is set
+		HAL_Delay(200);
+		GPIOC->ODR |= (1<<9);
 	}
 
 	I2C2->CR2 &= ~((0x3FF << 0) | (0x7F << 16));
 	I2C2->CR2 |= (1<<16) //numbytes == 1
-	| (0x69<<1); //slave address = 0x6B
+	| (0x69<<1); //slave address = 0x69
 	I2C2->CR2 |= (1<<10); //READ transfer (bit 10 is 1)
 	I2C2->CR2 |= (1<<13);//start bit set
 	
 	while (1){
+		GPIOC->ODR |= (1<<6);
 		if (I2C2->ISR & I2C_ISR_RXNE){break;}
 		else if (I2C2->ISR & I2C_ISR_NACKF) {
 		//error
 		return 1;
 		}
+		HAL_Delay(200);
+		GPIOC->ODR |= (1<<6);
 	}
 
-
 	while (1){
+		GPIOC->ODR ^= (1<<7);
 		if (I2C2->ISR & I2C_ISR_TC){break;}
+		HAL_Delay(200);
+		//GPIOC->ODR ^= (1<<7);
 	}
 	*(read) = I2C2->RXDR;
 	I2C2->CR2 |= (1<<14);//STOP
 
+	GPIOC->ODR ^= (1<<6);
+	GPIOC->ODR ^= (1<<8);
+	GPIOC->ODR ^= (1<<9);
+	
 	return 0;
 }
 
