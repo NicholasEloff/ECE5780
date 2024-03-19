@@ -109,13 +109,19 @@ int main(void)
 	ADC1->CR |= (1<<2);
 	
 	//6.2.1
+	RCC->APB1ENR |= (1<<29);
 	GPIOA->PUPDR |= (1<<8 | 1<<9);
 	GPIOA->MODER |= (1<<8 | 1<<9);
+	DAC->SWTRIGR |= (1<<0);
 		
-		
-		
-		
-		
+	DAC->CR |= (1<<0);
+	
+	// Sawtooth Wave: 8-bit, 32 samples/cycle
+	const uint8_t sawtooth_table[32] = {0,7,15,23,31,39,47,55,63,71,79,87,95,103,
+	111,119,127,134,142,150,158,166,174,182,190,198,206,214,222,230,238,246};
+
+	uint32_t count = 0;
+	
   while (1)
   {
 		uint8_t read = ADC1->DR;
@@ -129,6 +135,15 @@ int main(void)
 			GPIOC->ODR |= (1<<8);
 		if(read > 200)
 			GPIOC->ODR |= (1<<9);
+		
+		uint8_t temp = sawtooth_table[count];
+		DAC->DHR8R1 = temp;
+		
+		count++;
+		if(count == 33)
+			count = 0;
+		
+		HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }
