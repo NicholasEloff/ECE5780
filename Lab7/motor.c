@@ -4,7 +4,7 @@
  */
 #include "motor.h"
 
-volatile int16_t error_integral = 0;    // Integrated error signal
+volatile int16_t error_integral = 0;  // Integrated error signal
 volatile uint8_t duty_cycle = 0;    	// Output PWM duty cycle
 volatile int16_t target_rpm = 0;    	// Desired speed target
 volatile int16_t motor_speed = 0;   	// Measured motor speed
@@ -93,8 +93,8 @@ void encoder_init(void) {
     RCC->APB1ENR |= RCC_APB1ENR_TIM6EN;
     
     // Select PSC and ARR values that give an appropriate interrupt rate
-    TIM6->PSC = 11;
-    TIM6->ARR = 30000;
+    TIM6->PSC = 15;
+    TIM6->ARR = 46875;
     
     TIM6->DIER |= TIM_DIER_UIE;             // Enable update event interrupt
     TIM6->CR1 |= TIM_CR1_CEN;               // Enable Timer
@@ -159,18 +159,21 @@ void PI_update(void) {
      */
     
     /// TODO: calculate error signal and write to "error" variable
-    
+    uint16_t previous_integral = error_integral;
+		
     /* Hint: Remember that your calculated motor speed may not be directly in RPM!
      *       You will need to convert the target or encoder speeds to the same units.
      *       I recommend converting to whatever units result in larger values, gives
      *       more resolution.
      */
     
-    
+ 
     /// TODO: Calculate integral portion of PI controller, write to "error_integral" variable
-    
+    error_integral = previous_integral + (Ki * error);
+		
     /// TODO: Clamp the value of the integral to a limited positive range
-    
+		 if(error_integral > 3200){error_integral = 3200;}
+		
     /* Hint: The value clamp is needed to prevent excessive "windup" in the integral.
      *       You'll read more about this for the post-lab. The exact value is arbitrary
      *       but affects the PI tuning.
@@ -178,8 +181,7 @@ void PI_update(void) {
      */
     
     /// TODO: Calculate proportional portion, add integral and write to "output" variable
-    
-    int16_t output = 0; // Change this!
+    int16_t output = Ki + Kp;
     
     /* Because the calculated values for the PI controller are significantly larger than 
      * the allowable range for duty cycle, you'll need to divide the result down into 
@@ -198,15 +200,18 @@ void PI_update(void) {
      */
 
      /// TODO: Divide the output into the proper range for output adjustment
-     
+     output = error_integral / 32;
+		 
      /// TODO: Clamp the output value between 0 and 100 
-    
-    pwm_setDutyCycle(output);
-    duty_cycle = output;            // For debug viewing
+			if(output > 100){output=100;}
+			if(output < 0){output=0;}
+		
+			pwm_setDutyCycle(output);
+			duty_cycle = output;            // For debug viewing
 
-    // Read the ADC value for current monitoring, actual conversion into meaningful units 
-    // will be performed by STMStudio
-    if(ADC1->ISR & ADC_ISR_EOC) {   // If the ADC has new data for us
-        adc_value = ADC1->DR;       // Read the motor current for debug viewing
+			// Read the ADC value for current monitoring, actual conversion into meaningful units 
+			// will be performed by STMStudio
+			if(ADC1->ISR & ADC_ISR_EOC) {   // If the ADC has new data for us
+					adc_value = ADC1->DR;       // Read the motor current for debug viewing
     }
 }
